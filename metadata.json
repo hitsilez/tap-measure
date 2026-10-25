@@ -1,0 +1,6 @@
+{
+  "name": "Tape Measure Explorer",
+  "description": "Interactive dual metric and imperial tape measure learning tool with realistic metal blade, precision readouts, fraction visualizer, and offline PWA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

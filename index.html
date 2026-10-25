@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+  <meta name="description" content="Interactive dual metric and imperial tape measure explorer. Learn how to read tape measure markings, fractions, centimeters, and stud marks offline.">
+  <meta name="theme-color" content="#1e293b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Tape Measure">
+
+  <title>Tape Measure Explorer</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Header -->
+    <header class="top-nav">
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="7" width="20" height="10" rx="2" fill="#F59E0B" stroke="#B45309" />
+          <line x1="6" y1="7" x2="6" y2="12" stroke="#1E293B" stroke-width="1.5" />
+          <line x1="9" y1="7" x2="9" y2="10" stroke="#1E293B" stroke-width="1.2" />
+          <line x1="12" y1="7" x2="12" y2="13" stroke="#DC2626" stroke-width="1.8" />
+          <line x1="15" y1="7" x2="15" y2="10" stroke="#1E293B" stroke-width="1.2" />
+          <line x1="18" y1="7" x2="18" y2="12" stroke="#1E293B" stroke-width="1.5" />
+        </svg>
+        <div class="brand-text">
+          <h1>Tape Measure Explorer</h1>
+          <span class="sub">Dual Metric &amp; Imperial Visualizer</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div id="offline-status" class="offline-badge" title="Service Worker caching status">
+          <span class="dot"></span>
+          <span class="text">Checking...</span>
+        </div>
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle light or dark theme" title="Toggle theme">
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+        <button id="guide-modal-btn" class="pill-btn secondary" title="Open Learning Guide">
+          <span>📚 Tips</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Canvas Tape Section -->
+    <section class="tape-viewport-section" aria-label="Interactive Tape Measure Canvas">
+      <div class="canvas-container" id="canvas-container">
+        <canvas id="tape-canvas"></canvas>
+
+        <!-- Hover / Tap Tooltip Badge -->
+        <div id="canvas-floating-flag" class="canvas-floating-flag" style="display: none;">
+          <span class="flag-metric" id="flag-metric-txt">25.4 cm</span>
+          <span class="flag-imperial" id="flag-imperial-txt">10 in</span>
+        </div>
+
+        <!-- Floating Quick Viewport Controls on Canvas -->
+        <div class="canvas-overlay-controls">
+          <button id="zoom-in-btn" class="icon-tool-btn" aria-label="Zoom in" title="Zoom in (+)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <button id="zoom-out-btn" class="icon-tool-btn" aria-label="Zoom out" title="Zoom out (-)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <button id="fit-tape-btn" class="pill-btn canvas-fit-btn" title="View Whole Tape (Home)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            <span>Whole Tape</span>
+          </button>
+          <button id="center-pin-btn" class="pill-btn canvas-fit-btn" title="Center pinned mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+            <span>Center Pin</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Scrubber Sliders Bar -->
+      <div class="scrubber-bar">
+        <div class="scrubber-group">
+          <label for="pos-slider" class="scrubber-label">Position:</label>
+          <input type="range" id="pos-slider" min="0" max="500" step="0.1" value="25.4" aria-label="Tape position scrubber">
+          <span id="pos-slider-readout" class="scrubber-val">25.4 cm</span>
+        </div>
+        <div class="scrubber-group zoom-group">
+          <label for="zoom-slider" class="scrubber-label">Zoom:</label>
+          <input type="range" id="zoom-slider" min="0" max="100" step="0.5" value="65" aria-label="Zoom level slider">
+          <span id="zoom-slider-readout" class="scrubber-val">34 px/cm</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- "Where is What" Pinned Readout Cards -->
+    <section class="readout-section" aria-label="Current Measurement Readout">
+      <div class="readout-grid">
+        <!-- Metric Card -->
+        <article class="readout-card metric-card" id="metric-card">
+          <div class="card-header">
+            <div class="card-tag metric-tag">
+              <span class="arrow">▲</span> TOP EDGE: METRIC
+            </div>
+            <span class="card-hint">Millimeters &amp; Centimeters</span>
+          </div>
+          <div class="primary-measurement">
+            <span class="big-number" id="card-metric-cm">25.4</span>
+            <span class="unit-label">cm</span>
+          </div>
+          <div class="secondary-measurements">
+            <div class="sub-pill">
+              <span class="label">In Millimeters:</span>
+              <strong id="card-metric-mm">254 mm</strong>
+            </div>
+            <div class="sub-pill" id="card-metric-meter-box">
+              <span class="label">Meters + cm:</span>
+              <strong id="card-metric-meter">0 m 25.4 cm</strong>
+            </div>
+          </div>
+        </article>
+
+        <!-- Imperial Card -->
+        <article class="readout-card imperial-card" id="imperial-card">
+          <div class="card-header">
+            <div class="card-tag imperial-tag">
+              <span class="arrow">▼</span> BOTTOM EDGE: IMPERIAL
+            </div>
+            <span id="card-imperial-badge" class="accuracy-badge exact">Exact 1/16″</span>
+          </div>
+          <div class="primary-measurement">
+            <span class="big-number" id="card-imperial-fraction">10 in</span>
+          </div>
+          <div class="secondary-measurements">
+            <div class="sub-pill">
+              <span class="label">Feet &amp; Inches:</span>
+              <strong id="card-imperial-feet">0 ft 10 in</strong>
+            </div>
+            <div class="sub-pill">
+              <span class="label">Decimal:</span>
+              <strong id="card-imperial-decimal">10.000″</strong>
+            </div>
+          </div>
+          <!-- Fraction Segment Visualizer -->
+          <div class="fraction-visualizer" id="fraction-visualizer" title="Shows which 1/16th tick this mark aligns with">
+            <div class="fraction-header">
+              <span>Inch Fraction Breakdown (16ths):</span>
+              <span id="fraction-step-name" class="fraction-highlight">0/16 (Exact Inch)</span>
+            </div>
+            <div class="fraction-bar" id="fraction-bar">
+              <!-- 16 segments generated by JS -->
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- Say it in words Card -->
+      <article class="readout-card words-card" id="words-card" aria-live="polite">
+        <div class="card-header">
+          <div class="card-tag words-tag">
+            <span class="icon">🗣️</span> SAY IT IN WORDS
+          </div>
+          <div class="words-controls">
+            <label class="toggle-label" for="show-words-toggle">
+              <input type="checkbox" id="show-words-toggle" checked>
+              <span>Show words</span>
+            </label>
+            <button id="read-aloud-btn" class="pill-btn secondary small" aria-label="Read measurement aloud" title="Speak measurement using device voice">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+              <span>Read aloud</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="words-content" class="words-content">
+          <div class="words-group metric-words-group">
+            <div class="words-label-row">
+              <span class="words-badge metric-badge">Metric</span>
+            </div>
+            <p class="words-primary" id="words-metric-long">Twenty-five centimetres and four millimetres</p>
+            <p class="words-secondary" id="words-metric-decimal">or: twenty-five point four centimetres</p>
+          </div>
+
+          <div class="words-divider"></div>
+
+          <div class="words-group imperial-words-group">
+            <div class="words-label-row">
+              <span class="words-badge imperial-badge">Inches &amp; Feet</span>
+            </div>
+            <p class="words-primary" id="words-imperial-inches">Ten inches</p>
+            <p class="words-secondary" id="words-imperial-feet">or: ten inches</p>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Jump To / Search Tool -->
+    <section class="tools-section">
+      <div class="tool-card jump-card">
+        <h3>🎯 Jump To Measurement</h3>
+        <p class="tool-desc">Type any decimal (e.g. <code>25.4</code>) or mixed fraction (e.g. <code>5 3/8</code>, <code>14 11/16</code>):</p>
+        <form id="jump-form" class="jump-form" onsubmit="return false;">
+          <div class="jump-input-wrap">
+            <input type="text" id="jump-val-input" placeholder="e.g. 25.4 or 5 3/8" autocomplete="off" aria-label="Measurement value to jump to">
+            <select id="jump-unit-select" aria-label="Measurement unit">
+              <option value="cm" selected>cm (centimeters)</option>
+              <option value="mm">mm (millimeters)</option>
+              <option value="m">m (meters)</option>
+              <option value="in">in (inches / fractions)</option>
+              <option value="ft">ft (feet)</option>
+            </select>
+          </div>
+          <button type="submit" id="jump-submit-btn" class="pill-btn primary">
+            <span>Find It 🔍</span>
+          </button>
+        </form>
+        <div id="jump-feedback" class="feedback-msg" role="status" aria-live="polite"></div>
+      </div>
+
+      <!-- Tape Length Settings -->
+      <div class="tool-card length-card">
+        <div class="length-card-header">
+          <h3>📏 Tape Length</h3>
+          <span id="length-equivalent-badge" class="equiv-badge">5 m = 16.4 ft</span>
+        </div>
+        <p class="tool-desc">Choose a workshop standard length or set a custom blade size (0.3 m to 30 m):</p>
+
+        <div class="presets-row">
+          <span class="preset-label">Metric:</span>
+          <div class="preset-btns">
+            <button class="preset-btn" data-m="1">1 m</button>
+            <button class="preset-btn" data-m="2">2 m</button>
+            <button class="preset-btn" data-m="3">3 m</button>
+            <button class="preset-btn active" data-m="5">5 m</button>
+            <button class="preset-btn" data-m="8">8 m</button>
+            <button class="preset-btn" data-m="10">10 m</button>
+          </div>
+        </div>
+
+        <div class="presets-row">
+          <span class="preset-label">Imperial:</span>
+          <div class="preset-btns">
+            <button class="preset-btn" data-ft="10">10 ft</button>
+            <button class="preset-btn" data-ft="16">16 ft</button>
+            <button class="preset-btn" data-ft="25">25 ft</button>
+            <button class="preset-btn" data-ft="30">30 ft</button>
+          </div>
+        </div>
+
+        <div class="custom-length-row">
+          <label for="custom-length-input">Custom Length:</label>
+          <input type="number" id="custom-length-input" min="0.3" max="30" step="0.1" value="5" aria-label="Custom tape length">
+          <select id="custom-length-unit" aria-label="Custom length unit">
+            <option value="m" selected>meters (m)</option>
+            <option value="ft">feet (ft)</option>
+          </select>
+          <button id="set-custom-length-btn" class="pill-btn secondary small">Set</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Learning Guide / Tips Section (Accessible Collapsible & Modal) -->
+    <section class="tips-section" id="learning-guide">
+      <div class="section-title-wrap">
+        <h2>💡 Quick Tape Measure Secrets (For Beginners &amp; Kids)</h2>
+        <span class="section-subtitle">Everything you need to master any tape measure in 2 minutes</span>
+      </div>
+
+      <div class="tips-grid">
+        <div class="tip-card">
+          <div class="tip-icon red-stud-icon">♦</div>
+          <div class="tip-content">
+            <h4>The Red Diamonds (16″ Stud Marks)</h4>
+            <p>Every <strong>16 inches</strong> (16″, 32″, 48″, 64″...), you will find a small <strong>red diamond</strong>. In house construction, wall studs and floor joists are placed exactly 16 inches apart from center to center. When hanging shelves or pictures, look for these marks!</p>
+          </div>
+        </div>
+
+        <div class="tip-card">
+          <div class="tip-icon red-num-icon">10</div>
+          <div class="tip-content">
+            <h4>Red Numbers &amp; Foot Marks</h4>
+            <p>On the <strong>metric top edge</strong>, every 10 cm is highlighted in <strong>bold red</strong>, with red badges for whole meters (1 m, 2 m). On the <strong>imperial bottom edge</strong>, every 12 inches (1 ft, 2 ft...) is marked in red so you don't have to divide by 12 in your head!</p>
+          </div>
+        </div>
+
+        <div class="tip-card">
+          <div class="tip-icon fraction-icon">1/16</div>
+          <div class="tip-content">
+            <h4>The Secret of Tick Heights</h4>
+            <p>On the inch side, the lines are different heights on purpose! The longest is the <strong>1-inch</strong> mark. Next tallest is the <strong>1/2-inch</strong> mark. Then <strong>1/4</strong>, <strong>1/8</strong>, and the shortest lines are <strong>1/16 of an inch</strong>. Zoom in to see all 16ths!</p>
+          </div>
+        </div>
+
+        <div class="tip-card">
+          <div class="tip-icon hook-icon">🪝</div>
+          <div class="tip-content">
+            <h4>Why Is the Metal Hook Loose?</h4>
+            <p>Notice the metal hook wiggles slightly? That’s not broken! It moves by exactly <strong>1/16″ (1.6 mm)</strong>, which is the exact thickness of the hook itself. When you <em>pull</em> on an outside edge, it slides out. When you <em>push</em> against a wall, it slides in. That way, both measurements are 100% accurate!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Interactive Conversion Demo -->
+      <div class="golden-ratio-box">
+        <h4>🌟 The Golden Anchor: <code>25.4 cm = 10 inches</code></h4>
+        <p>Because 1 inch is defined as exactly 25.4 millimeters (2.54 cm), exactly 10 inches equals 25.4 cm! That’s why our pin starts right there.</p>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-shortcuts">
+        <span>⌨️ Keyboard: <kbd>←</kbd> <kbd>→</kbd> Pan &bull; <kbd>+</kbd> <kbd>-</kbd> Zoom &bull; <kbd>Home</kbd> Reset</span>
+      </div>
+      <div class="footer-links">
+        <span>Tape Measure Explorer &bull; 100% Local &amp; Offline PWA</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
